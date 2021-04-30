@@ -6,7 +6,7 @@ struct [[eosio::table("message"), eosio::contract("talk")]] message {
     uint64_t    reply_to = {}; // Non-0 if this is a reply
     eosio::name user     = {};
     std::string content  = {};
-    uint64_t.   likes.   = {};
+    uint64_t   likes     = {};
 
     uint64_t primary_key() const { return id; }
     uint64_t get_reply_to() const { return reply_to; }
@@ -43,18 +43,19 @@ class talk : eosio::contract {
             message.reply_to = reply_to;
             message.user     = user;
             message.content  = content;
-            message.likes.   = 0;
+            message.likes   = 0;
         });
     }
 
     // Like a message
-    [[eosio::action]] void like(uint64_t id) {
+    [[eosio::action]] void like(uint64_t id, eosio::name user) {
+        require_auth(user);
         message_table table{get_self(), 0};
         auto iterator = table.find(id);
-        check(iterator != addresses.end(), "Message does not exist");
+        eosio::check(iterator != table.end(), "Message does not exist");
 
-        table.modify(iterator, "bob", [&]( auto& row ) {
+        table.modify(iterator, user, [&]( auto& row ) {
             row.likes++;
-        })
+        });
     }
 };
